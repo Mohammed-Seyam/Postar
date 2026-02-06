@@ -39,6 +39,7 @@ class ProcessScheduledPosts extends Command
         $this->info("Found {$duePosts->count()} posts. Dispatching jobs...");
 
         foreach ($duePosts as $post) {
+            $post->update(['status' => 'processing']);
             PublishVideoJob::dispatch($post);
             $this->info("Dispatched job for post ID: {$post->id}");
         }

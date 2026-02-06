@@ -17,6 +17,9 @@ class PublishVideoJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $tries = 3;
+    public $backoff = 30;
+
     /**
      * Create a new job instance.
      */
@@ -65,7 +68,7 @@ class PublishVideoJob implements ShouldQueue
                 'external_id' => $externalId,
             ]);
             
-            $this->scheduledPost->video->update(['status' => 'published']);
+
 
             Log::info("Successfully published post: {$this->scheduledPost->id}");
 
@@ -73,9 +76,9 @@ class PublishVideoJob implements ShouldQueue
             Log::error("Failed to publish post {$this->scheduledPost->id}: " . $e->getMessage());
             
             $this->scheduledPost->update(['status' => 'failed']);
-            $this->scheduledPost->video->update(['status' => 'failed']);
+
             
-            $this->fail($e);
+            throw $e;
         }
     }
 
