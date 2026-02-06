@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Interfaces\PlatformInterface;
+use App\Models\PlatformAccount;
 use App\Models\ScheduledPost;
 use App\Services\Platforms\TikTokService;
 use Illuminate\Bus\Queueable;
@@ -33,13 +34,35 @@ class PublishVideoJob implements ShouldQueue
         $this->scheduledPost->update(['status' => 'publishing']);
 
         try {
-            $platformService = $this->getPlatformService($this->scheduledPost->platform);
+            // Retrieve User's Platform Account
+            $video = $this->scheduledPost->video;
+            if (!$video) {
+                 throw new \Exception("Video not found for scheduled post.");
+            }
             
-            $externalId = $platformService->publish($this->scheduledPost);
+            $platformAccount = PlatformAccount::where('user_id', $video->user_id)
+                ->where('platform', $this->scheduledPost->platform)
+                ->first();
+                
+            if (!$platformAccount) {
+                throw new \Exception("Platform account not found for user {$video->user_id} and platform {$this->scheduledPost->platform}");
+            }
+
+            // Check Token Expiry
+            if ($platformAccount->token_expires_at && $platformAccount->token_expires_at->isPast()) {
+                 Log::info("Token expired for account {$platformAccount->id}. Refreshing...");
+                 $this->refreshAccessToken($platformAccount);
+            }
+
+            $platformService = $this->getPlatformService($this->scheduledPost->platform);
+
+
+            
+            $externalId = $platformService->publish($this->scheduledPost, $platformAccount->access_token);
 
             $this->scheduledPost->update([
                 'status' => 'published',
-                // 'external_id' => $externalId, // If we had this column
+                'external_id' => $externalId,
             ]);
             
             $this->scheduledPost->video->update(['status' => 'published']);
@@ -62,5 +85,20 @@ class PublishVideoJob implements ShouldQueue
             'tiktok' => new TikTokService(),
             default => throw new \Exception("Platform {$platform} not supported"),
         };
+    }
+
+    private function refreshAccessToken(PlatformAccount $account): void
+    {
+        // Mock refresh logic
+        // In a real app, this would use the refresh_token to get a new access token from the platform API
+        
+        $newAccessToken = "mock_refreshed_token_" . uniqid();
+        
+        $account->update([
+            'access_token' => $newAccessToken,
+            'token_expires_at' => now()->addDays(30), // Extended validity
+        ]);
+
+        Log::info("Token refreshed for account {$account->id}");
     }
 }

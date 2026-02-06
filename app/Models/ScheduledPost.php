@@ -19,6 +19,7 @@ class ScheduledPost extends Model
         'caption',
         'hashtags',
         'status',
+        'external_id',
     ];
 
     protected $casts = [

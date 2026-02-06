@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('external_account_id');
             $table->text('access_token');
             $table->text('refresh_token')->nullable();
+            $table->timestamp('token_expires_at')->nullable();
             $table->timestamps();
         });
     }

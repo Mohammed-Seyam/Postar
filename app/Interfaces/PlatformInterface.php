@@ -6,5 +6,5 @@ use App\Models\ScheduledPost;
 
 interface PlatformInterface
 {
-    public function publish(ScheduledPost $post): string; // Returns external ID
+    public function publish(ScheduledPost $post, string $accessToken): string; // Returns external ID
 }

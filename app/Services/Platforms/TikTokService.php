@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class TikTokService implements PlatformInterface
 {
-    public function publish(ScheduledPost $post): string
+    public function publish(ScheduledPost $post, string $accessToken): string
     {
         // Mock TikTok API implementation
         // In reality, this would exchange tokens, upload video, and create post
