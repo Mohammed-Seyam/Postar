@@ -8,6 +8,7 @@ use App\Models\Video;
 use App\Repositories\VideoRepository;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class VideoService
 {
@@ -19,25 +20,36 @@ class VideoService
     {
         $path = $file->store('videos/' . $user->id, 's3');
 
-        $video = $this->videoRepository->create([
-            'user_id' => $user->id,
-            'file_path' => $path,
-            'status' => 'draft',
-            'duration' => 0, // Will be updated by job
-        ]);
+        try {
+            $video = $this->videoRepository->create([
+                'user_id' => $user->id,
+                'file_path' => $path,
+                'status' => 'draft',
+                'duration' => 0, // Will be updated by job
+            ]);
 
-        ProcessVideoJob::dispatch($video);
+            ProcessVideoJob::dispatch($video);
 
-        return $video;
+            return $video;
+        } catch (\Exception $e) {
+            Storage::disk('s3')->delete($path);
+            throw $e;
+        }
     }
 
-    public function list(User $user): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function list(User $user, ?string $platform = null): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        return $this->videoRepository->listForUser($user->id);
+        return $this->videoRepository->listForUser($user->id, 15, $platform);
     }
 
     public function delete(Video $video): bool
     {
+        if ($video->scheduledPosts()->exists()) {
+             throw ValidationException::withMessages([
+                'video' => ['Cannot delete video that has scheduled posts.'],
+            ]);
+        }
+
         // Optionally delete from S3
         // Storage::disk('s3')->delete($video->file_path);
         

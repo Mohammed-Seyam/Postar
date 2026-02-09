@@ -19,7 +19,7 @@ class ScheduledPostFactory extends Factory
     {
         return [
             'video_id' => Video::factory(),
-            'platform' => $this->faker->randomElement(['twitter', 'linkedin', 'instagram']),
+            'platform' => $this->faker->randomElement(['tiktok', 'instagram', 'youtube']),
             'publish_at' => $this->faker->dateTimeBetween('now', '+1 month'),
             'caption' => $this->faker->sentence(),
             'hashtags' => collect($this->faker->words(3))->map(fn ($word) => "#{$word}")->implode(' '),

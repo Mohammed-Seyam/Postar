@@ -20,7 +20,10 @@ class SubscriptionFactory extends Factory
         return [
             'user_id' => User::factory(),
             'stripe_subscription_id' => $this->faker->uuid(),
-            'plan' => $this->faker->randomElement(['basic', 'pro', 'enterprise']),
+            'plan_id' => \App\Models\Plan::inRandomOrder()->first()?->id ?? \App\Models\Plan::factory(),
+            'interval' => $this->faker->randomElement(['month', 'three_months', 'six_months', 'year']),
+            'start_at' => now(),
+            'expire_at' => now()->addMonth(),
             'status' => 'active',
         ];
     }

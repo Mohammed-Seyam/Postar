@@ -28,10 +28,16 @@ class VideoRepository
         return $video->delete();
     }
 
-    public function listForUser(string $userId, int $perPage = 15): LengthAwarePaginator
+    public function listForUser(string $userId, int $perPage = 15, ?string $platform = null): LengthAwarePaginator
     {
-        return Video::where('user_id', $userId)
-            ->latest()
-            ->paginate($perPage);
+        $query = Video::where('user_id', $userId);
+
+        if ($platform) {
+            $query->whereHas('scheduledPosts', function ($q) use ($platform) {
+                $q->where('platform', $platform);
+            });
+        }
+
+        return $query->latest()->paginate($perPage);
     }
 }

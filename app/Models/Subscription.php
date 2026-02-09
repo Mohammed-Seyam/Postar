@@ -13,12 +13,25 @@ class Subscription extends Model
     protected $fillable = [
         'user_id',
         'stripe_subscription_id',
-        'plan',
+        'plan_id',
+        'interval',
+        'start_at',
+        'expire_at',
         'status',
+    ];
+
+    protected $casts = [
+        'start_at' => 'datetime',
+        'expire_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
     }
 }

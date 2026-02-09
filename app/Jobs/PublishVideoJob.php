@@ -11,6 +11,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class PublishVideoJob implements ShouldQueue
@@ -34,9 +36,28 @@ class PublishVideoJob implements ShouldQueue
     {
         Log::info("Processing Scheduled Post: {$this->scheduledPost->id}");
 
-        $this->scheduledPost->update(['status' => 'publishing']);
+        // Atomic Lock to prevent double publishing
+        $lock = Cache::lock('publishing_post_' . $this->scheduledPost->id, 120);
+
+        if (!$lock->get()) {
+            Log::warning("Post {$this->scheduledPost->id} is already being processed.");
+            return;
+        }
 
         try {
+            // Verify model existence and state
+            if (!$this->scheduledPost->exists) {
+                return;
+            }
+            
+            // Reload to check current status
+            $this->scheduledPost->refresh();
+            if ($this->scheduledPost->status === 'published') {
+                 return;
+            }
+
+            $this->scheduledPost->update(['status' => 'publishing']);
+
             // Retrieve User's Platform Account
             $video = $this->scheduledPost->video;
             if (!$video) {
@@ -58,8 +79,6 @@ class PublishVideoJob implements ShouldQueue
             }
 
             $platformService = $this->getPlatformService($this->scheduledPost->platform);
-
-
             
             $externalId = $platformService->publish($this->scheduledPost, $platformAccount->access_token);
 
@@ -67,18 +86,18 @@ class PublishVideoJob implements ShouldQueue
                 'status' => 'published',
                 'external_id' => $externalId,
             ]);
-            
-
 
             Log::info("Successfully published post: {$this->scheduledPost->id}");
 
         } catch (\Exception $e) {
             Log::error("Failed to publish post {$this->scheduledPost->id}: " . $e->getMessage());
             
+            // Only retry on specific errors, or handle permanently failed
             $this->scheduledPost->update(['status' => 'failed']);
-
             
             throw $e;
+        } finally {
+            $lock->release();
         }
     }
 

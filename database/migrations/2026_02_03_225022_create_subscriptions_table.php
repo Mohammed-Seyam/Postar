@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('stripe_subscription_id')->unique();
-            $table->string('plan');
-            $table->string('status');
+            $table->foreignId('plan_id')->constrained('plans');
+            $table->enum('interval', ['month', 'three_months', 'six_months', 'year'])->default('month');
+            $table->timestamp('start_at')->nullable();
+            $table->timestamp('expire_at')->nullable();
+            $table->enum('status', ['active', 'ended', 'canceled'])->default('active');
             $table->timestamps();
         });
     }

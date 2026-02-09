@@ -19,7 +19,7 @@ class StoreScheduleRequest extends FormRequest
         return [
             'video_id' => ['required', 'exists:videos,id', 'unique:scheduled_posts,video_id'],
             'platform' => ['required', 'string', 'in:tiktok,instagram,youtube'],
-            'publish_at' => ['required', 'date', 'after:now'],
+            'publish_at' => ['required', 'date', 'after:+1 minute'],
             'caption' => ['nullable', 'string', 'max:2200'],
             'hashtags' => ['nullable', 'string'],
         ];

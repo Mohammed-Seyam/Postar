@@ -19,7 +19,8 @@ class VideoController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $videos = $this->videoService->list($request->user());
+        $platform = $request->query('platform');
+        $videos = $this->videoService->list($request->user(), $platform);
         return VideoResource::collection($videos);
     }
 

@@ -15,9 +15,14 @@ class SubscriptionController extends Controller
 
     public function subscribe(Request $request): JsonResponse
     {
-        $request->validate(['price_id' => 'required|string']);
+        $request->validate([
+            'plan_slug' => 'required|string|exists:plans,slug',
+        ]);
         
-        $url = $this->subscriptionService->createCheckoutSession($request->user(), $request->input('price_id'));
+        $url = $this->subscriptionService->createCheckoutSession(
+            $request->user(), 
+            $request->input('plan_slug')
+        );
         
         return response()->json(['url' => $url]);
     }

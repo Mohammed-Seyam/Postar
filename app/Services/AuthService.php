@@ -4,24 +4,20 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-
-
-
 class AuthService
 {
     public function register(array $data): User
     {
-
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'language' => $data['language'] ?? 'en',
-        ]);
-
-        return $user;
+        return DB::transaction(function () use ($data) {
+            return User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'language' => $data['language'] ?? 'en',
+            ]);
+        });
     }
 
     public function login(array $credentials): array
@@ -36,7 +32,13 @@ class AuthService
             ]);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        try {
+            $token = $user->createToken('auth_token')->plainTextToken;
+        } catch (\Exception $e) {
+            throw ValidationException::withMessages([
+                'email' => ['Failed to authenticate. Please try again.'],
+            ]);
+        }
 
         return [
             'user' => $user,
@@ -46,6 +48,6 @@ class AuthService
 
     public function logout(User $user): void
     {
-        $user->currentAccessToken()->delete();
+        $user->currentAccessToken()?->delete();
     }
 }
